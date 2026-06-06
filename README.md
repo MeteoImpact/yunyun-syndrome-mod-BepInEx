@@ -22,13 +22,14 @@ Looking for something else?
     2. Download the newest **Melonloader.Installer.exe**
     3. Choose "Yunyun Syndrome!? Rhythm Psychosis"
     4. Press "Install"
+    5. **(Linux only)** In Steam set Launch Options for Yunyun to `WINEDLLOVERRIDES="version=n,b" %command%` [read more](https://melonwiki.xyz/#/?id=windows-games-wineproton)
 2. Install [YunyunLocalePatcher](https://github.com/YYDS-EN-Fanslation/yunyun-syndrome-mod)
     1. Go to [Releases](https://github.com/YYDS-EN-Fanslation/yunyun-syndrome-mod/releases)
     2. Download the newest **YunyunLocalePatcher.zip**
     3. Extract files
     4. Copy contents into game folder, make sure `Mods` and `UserData` folders are merged and the `YunyunLocalePatcher.dll` ended up
        in `Yunyun_Syndrome\Mods` directory. 
-3. (optional) Add/remove locale patches in `Yunyun_Syndrome\UserData\LocalePatches` directory. For example:
+3. **(optional)** Add/remove locale patches in `Yunyun_Syndrome\UserData\LocalePatches` directory. For example:
     - [Radish](https://github.com/Radish-sys)'s MTL: [JP -> EN](https://raw.githubusercontent.com/YYDS-EN-Fanslation/yunyun-syndrome-translation/refs/heads/master/YYDS%20EN%20Fanslation%20-%20MTL%20Patch.csv)
     - Google Translate MTL: [JP -> EN](https://raw.githubusercontent.com/funmaker/YunyunLocalePatcher/refs/heads/master/examples/20-english-mtl.csv) (no dialogues)
     - [Moshi Moshi](https://github.com/lIllIIlI)'s: [JP -> EN](https://raw.githubusercontent.com/funmaker/YunyunLocalePatcher/refs/heads/master/examples/20-faithful-english.csv) ([#2](https://github.com/funmaker/YunyunLocalePatcher/pull/2)) (no dialogues)
