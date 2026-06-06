@@ -11,10 +11,6 @@ public class TablePatcher : ITablePostprocessor
     public void PostprocessTable(LocalizationTable table)
     {
         MelonLogger.Msg($"Patching table: {table.name}...");
-        MelonLogger.Msg($"!!!!!!!!!!!!!!!!!");
-        MelonLogger.Msg($"!!!!!!!!!!!!!!!!!");
-        MelonLogger.Msg($"!!!!!!!!!!!!!!!!!");
-        MelonLogger.Msg($"!!!!!!!!!!!!!!!!!");
 
         if (LocalePatcherCore.patches == null) return;
 

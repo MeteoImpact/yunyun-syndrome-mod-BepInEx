@@ -54,3 +54,5 @@ Looking for something else?
 This mod simply hooks into Unity Localization using ITablePostprocessor interface and modifies StringTables as they are loaded.
 The patches loaded from `Yunyun_Syndrome\UserData\LocalePatches\*.csv` are applied in alphabetical order, so you can use names
 like `10-initial.csv`, `50-common.csv`, `90-extra.csv`, etc to control the order in which patches are applied.
+
+For more details about patch format, [read this](https://github.com/YYDS-EN-Fanslation/yunyun-syndrome-translation#format).

@@ -8,7 +8,7 @@ using UnityEngine.Localization.Settings;
 using UnityEngine.Localization.Tables;
 using UnityEngine.ResourceManagement.AsyncOperations;
 
-[assembly: MelonInfo(typeof(YunyunLocalePatcher.LocalePatcherCore), "YunyunLocalePatcher", "1.3.0", "FunMaker", null)]
+[assembly: MelonInfo(typeof(YunyunLocalePatcher.LocalePatcherCore), "YunyunLocalePatcher", "1.4.0", "FunMaker", null)]
 [assembly: MelonGame("AllianceArts", "Yunyun_Syndrome")]
 
 namespace YunyunLocalePatcher;

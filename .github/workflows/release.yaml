@@ -11,14 +11,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-    
+
       - name: Checkout libs
         uses: actions/checkout@v4
         with:
           repository: ${{ secrets.LIBS_REPOSITORY }}
           token: ${{ secrets.LIBS_REPOSITORY_TOKEN }}
           path: libs
-    
+
       - name: Checkout translation
         uses: actions/checkout@v4
         with:
@@ -43,7 +43,7 @@ jobs:
           New-Item -ItemType Directory -Path "release\Mods"
           New-Item -ItemType Directory -Path "release\UserData\LocalePatches"
           Copy-Item "bin\x64\Release\netstandard2.1\YunyunLocalePatcher.dll" "release\Mods\"
-          Copy-Item "translations\YYDS EN Fanslation - MTL Patch.csv" "release\UserData\LocalePatches\20-yyds-en-fanslation.csv"
+          Copy-Item "translations\YYDS EN Fanslation - Patch.csv" "release\UserData\LocalePatches\20-yyds-en-fanslation.csv"
           Copy-Item -Recurse "translations\YYDS-EN-Fanslation" "release\UserData\LocalePatches\YYDS-EN-Fanslation"
 
       - name: Compress Artifacts
