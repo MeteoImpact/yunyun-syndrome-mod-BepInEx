@@ -1,9 +1,16 @@
-using MelonLoader;
+using BepInEx.Logging;
 
 namespace YunyunLocalePatcher;
 
 public class PatchFile
 {
+    private static ManualLogSource Log;
+
+    public static void Initialize(ManualLogSource logger)
+    {
+        Log = logger;
+    }
+
     public struct PatchKey
     {
         public string TableName;
@@ -53,7 +60,7 @@ public class PatchFile
             }
             else
             {
-                MelonLogger.Warning($"[{filename}]: Expected 3 comma separated values, got: `{row.Count}`");
+                Log.LogMessage($"[{filename}]: Expected 3 comma separated values, got: `{row.Count}`");
             }
         }
 
