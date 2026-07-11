@@ -9,336 +9,335 @@ using UnityEngine.Localization.Settings;
 using UnityEngine.Localization.Tables;
 using UnityEngine.ResourceManagement.AsyncOperations;
 
-namespace YunyunLocalePatcher
+namespace YunyunLocalePatcher;
+
+[BepInPlugin("YunyunLocalePatcher", "YunyunLocalePatcher", "1.4.0")]
+public class LocalePatcherCore : BaseUnityPlugin
 {
-    [BepInPlugin("YunyunLocalePatcher", "YunyunLocalePatcher", "1.4.0")]
-    public class LocalePatcherCore : BaseUnityPlugin
+    public static PatchFile patches;
+    public static string patchesRoot = Paths.GameRootPath + "\\UserData\\LocalePatches";
+    private Harmony _harmony;
+    internal static ManualLogSource Log;
+
+    public void Awake()
     {
-        public static PatchFile patches;
-        public static string patchesRoot = Paths.GameRootPath + "\\UserData\\LocalePatches";
-        private Harmony _harmony;
-        internal static ManualLogSource Log;
+        Log = Logger;
+        PatchFile.Initialize(Log);
+        TablePatcher.Initialize(Log);
+        TextAssetPatcher.Initialize(Log);
 
-        public void Awake()
+        string[] args = Environment.GetCommandLineArgs();
+        if (args.Contains("--localepatcher.dumpstrings"))
         {
-            Log = Logger;
-            PatchFile.Initialize(Log);
-            TablePatcher.Initialize(Log);
-            TextAssetPatcher.Initialize(Log);
-
-            string[] args = Environment.GetCommandLineArgs();
-            if (args.Contains("--localepatcher.dumpstrings"))
-            {
-                string dumpName = "00-base";
-                Log.LogMessage($"--localepatcher.dumpstrings has been passed to the game. Dumping all translation strings to ${Path.Combine(patchesRoot, dumpName)}.csv");
-                StartCoroutine(DumpAllStrings(dumpName));
-                return;
-            }
-
-            var patches = LocalePatcherCore.patches = LoadAllPatches();
-            if (patches.Count == 0)
-            {
-                Log.LogWarning("Nothing to patch! Quitting.");
-                return;
-            }
-
-            var settings = LocalizationSettings.Instance;
-            if (settings == null || settings.GetStringDatabase().TablePostprocessor != null)
-            {
-                Log.LogError("Table postprocessor is already registered. YunyunLocalePatcher will not work.");
-                return;
-            }
-
-            TablePatcher tablePatcher = new TablePatcher();
-
-            settings.GetStringDatabase().TablePostprocessor = tablePatcher;
-            Log.LogMessage("StringTable postprocessor registered.");
-
-            settings.GetAssetDatabase().TablePostprocessor = tablePatcher;
-            Log.LogMessage("AssetTable postprocessor registered.");
-
-            this._harmony = new Harmony("com.funmaker.yunyunpatch");
-            this._harmony.PatchAll();
-            Log.LogMessage("TextAsset patch registered.");
-
-            Log.LogMessage("Intialization complete.");
+            string dumpName = "00-base";
+            Log.LogMessage($"--localepatcher.dumpstrings has been passed to the game. Dumping all translation strings to ${Path.Combine(patchesRoot, dumpName)}.csv");
+            StartCoroutine(DumpAllStrings(dumpName));
+            return;
         }
 
-        private PatchFile LoadAllPatches()
+        var patches = LocalePatcherCore.patches = LoadAllPatches();
+        if (patches.Count == 0)
         {
-            Log.LogMessage($"Loading patches from {patchesRoot}");
+            Log.LogWarning("Nothing to patch! Quitting.");
+            return;
+        }
 
-            var patches = new PatchFile();
-            int fileCount = 0;
-            if (Directory.Exists(patchesRoot))
+        var settings = LocalizationSettings.Instance;
+        if (settings == null || settings.GetStringDatabase().TablePostprocessor != null)
+        {
+            Log.LogError("Table postprocessor is already registered. YunyunLocalePatcher will not work.");
+            return;
+        }
+
+        TablePatcher tablePatcher = new TablePatcher();
+
+        settings.GetStringDatabase().TablePostprocessor = tablePatcher;
+        Log.LogMessage("StringTable postprocessor registered.");
+
+        settings.GetAssetDatabase().TablePostprocessor = tablePatcher;
+        Log.LogMessage("AssetTable postprocessor registered.");
+
+        this._harmony = new Harmony("com.funmaker.yunyunpatch");
+        this._harmony.PatchAll();
+        Log.LogMessage("TextAsset patch registered.");
+
+        Log.LogMessage("Intialization complete.");
+    }
+
+    private PatchFile LoadAllPatches()
+    {
+        Log.LogMessage($"Loading patches from {patchesRoot}");
+
+        var patches = new PatchFile();
+        int fileCount = 0;
+        if (Directory.Exists(patchesRoot))
+        {
+            var patchFiles = Directory.GetFiles(patchesRoot, "*");
+            Array.Sort(patchFiles);
+
+            foreach (var file in patchFiles)
             {
-                var patchFiles = Directory.GetFiles(patchesRoot, "*");
-                Array.Sort(patchFiles);
-
-                foreach (var file in patchFiles)
+                string fileName = Path.GetFileName(file);
+                try
                 {
-                    string fileName = Path.GetFileName(file);
-                    try
+                    if (fileName == "00-base.csv")
                     {
-                        if (fileName == "00-base.csv")
+                        Log.LogWarning($"Skipping 00-base.csv. Have you forgotten to remove it?");
+                        continue;
+                    }
+
+                    Log.LogMessage($"Loading {fileName}");
+                    var patchFile = PatchFile.Load(file);
+                    patches.Append(patchFile);
+                    fileCount += 1;
+                    Log.LogMessage($"Loaded {fileName} ({patches.Count} entries)");
+                }
+                catch (Exception ex)
+                {
+                    Log.LogError($"Couldn't load {fileName}: {ex.Message}");
+                }
+            }
+        }
+        else
+        {
+            Log.LogWarning($"Directory doesn't exist. Creating.");
+            Directory.CreateDirectory(patchesRoot);
+        }
+
+        Log.LogMessage($"Loaded {fileCount} patch files, {patches.Count} entries in total");
+
+        return patches;
+    }
+
+    private IEnumerator DumpAllStrings(string dumpName)
+    {
+        yield return LocalizationSettings.InitializationOperation;
+
+        Directory.CreateDirectory(Path.Combine(patchesRoot, dumpName));
+
+        var locales = LocalizationSettings.AvailableLocales.Locales;
+        var entries = new List<string[]>();
+
+        foreach (var locale in locales)
+        {
+            Log.LogMessage($"Dumping StringTables for Locale: {locale.LocaleName}");
+
+            var handle = LocalizationSettings.StringDatabase.GetAllTables(locale);
+            yield return handle;
+
+            if (handle.Status != AsyncOperationStatus.Succeeded)
+            {
+                Log.LogWarning($"Failed to load string tables for {locale.LocaleName}");
+                continue;
+            }
+
+            foreach (var table in handle.Result)
+            {
+                if (table is StringTable st)
+                {
+                    foreach (var entry in st.Values)
+                    {
+                        entries.Add([
+                            st.name,
+                            entry.Key,
+                            entry.Value,
+                            entry.KeyId.ToString(),
+                        ]);
+                    }
+                }
+            }
+        }
+
+        foreach (var locale in locales)
+        {
+            Log.LogMessage($"Dumping AssetTables for Locale: {locale.LocaleName}");
+
+            var handle = LocalizationSettings.AssetDatabase.GetAllTables(locale);
+            yield return handle;
+
+            if (handle.Status != AsyncOperationStatus.Succeeded)
+            {
+                Log.LogWarning($"Failed to load asset tables for {locale.LocaleName}");
+                continue;
+            }
+
+            foreach (var table in handle.Result)
+            {
+                if (table is AssetTable at)
+                {
+                    foreach (var entry in at.Values)
+                    {
+                        var assetHandle = at.GetAssetAsync<UnityEngine.Object>(entry.Key);
+                        yield return assetHandle;
+
+                        if (assetHandle.Status != AsyncOperationStatus.Succeeded)
                         {
-                            Log.LogWarning($"Skipping 00-base.csv. Have you forgotten to remove it?");
+                            Log.LogWarning($"Failed to load asset for key '{entry.Key}' in table '{at.name}'");
                             continue;
                         }
 
-                        Log.LogMessage($"Loading {fileName}");
-                        var patchFile = PatchFile.Load(file);
-                        patches.Append(patchFile);
-                        fileCount += 1;
-                        Log.LogMessage($"Loaded {fileName} ({patches.Count} entries)");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.LogError($"Couldn't load {fileName}: {ex.Message}");
+                        UnityEngine.Object asset = assetHandle.Result;
+                        if (asset == null) continue;
+
+                        Texture2D texture = null;
+                        if (asset is Texture2D tex) texture = LocalePatcherCore.GetReadableTexture(tex);
+                        else if (asset is Sprite sprite) texture = LocalePatcherCore.GetReadableSprite(sprite);
+                        else
+                        {
+                            Log.LogMessage($"Asset '{entry.Key}' is not a Texture2D or Sprite, skipping.");
+                            continue;
+                        }
+
+                        byte[] pngData = ImageConversion.EncodeToPNG(texture);
+
+                        string path = $"{dumpName}/{at.name}_{entry.Key}.png";
+                        File.WriteAllBytes(Path.Combine(patchesRoot, path), pngData);
+
+                        entries.Add([
+                            at.name,
+                            entry.Key,
+                            path,
+                            entry.KeyId.ToString(),
+                        ]);
                     }
                 }
             }
-            else
-            {
-                Log.LogWarning($"Directory doesn't exist. Creating.");
-                Directory.CreateDirectory(patchesRoot);
-            }
-
-            Log.LogMessage($"Loaded {fileCount} patch files, {patches.Count} entries in total");
-
-            return patches;
         }
 
-        private IEnumerator DumpAllStrings(string dumpName)
+        UnityEngine.Object[] textAssets = Resources.LoadAll("/", typeof(TextAsset));
+        foreach (var asset in textAssets)
         {
-            yield return LocalizationSettings.InitializationOperation;
+            if (asset is not TextAsset textAsset)
+                continue;
 
-            Directory.CreateDirectory(Path.Combine(patchesRoot, dumpName));
-
-            var locales = LocalizationSettings.AvailableLocales.Locales;
-            var entries = new List<string[]>();
-
-            foreach (var locale in locales)
+            if (textAsset.name.EndsWith(".lang"))
             {
-                Log.LogMessage($"Dumping StringTables for Locale: {locale.LocaleName}");
+                Log.LogMessage($"Dumping Event lines for: {textAsset.name}");
 
-                var handle = LocalizationSettings.StringDatabase.GetAllTables(locale);
-                yield return handle;
-
-                if (handle.Status != AsyncOperationStatus.Succeeded)
+                try
                 {
-                    Log.LogWarning($"Failed to load string tables for {locale.LocaleName}");
-                    continue;
-                }
+                    LocalizeData localizeData = JsonUtility.FromJson<LocalizeData>((textAsset as TextAsset).text);
 
-                foreach (var table in handle.Result)
-                {
-                    if (table is StringTable st)
+                    foreach (var locale in localizeData.List)
                     {
-                        foreach (var entry in st.Values)
+                        for (var i = 0; i < locale.Lines.Length; i++)
                         {
                             entries.Add([
-                                st.name,
-                                entry.Key,
-                                entry.Value,
-                                entry.KeyId.ToString(),
+                                textAsset.name,
+                                locale.Language + "/" + i,
+                                locale.Lines[i],
+                                localizeData.Keys[i] + "/" + locale.Language,
                             ]);
                         }
                     }
                 }
-            }
-
-            foreach (var locale in locales)
-            {
-                Log.LogMessage($"Dumping AssetTables for Locale: {locale.LocaleName}");
-
-                var handle = LocalizationSettings.AssetDatabase.GetAllTables(locale);
-                yield return handle;
-
-                if (handle.Status != AsyncOperationStatus.Succeeded)
+                catch (Exception ex)
                 {
-                    Log.LogWarning($"Failed to load asset tables for {locale.LocaleName}");
-                    continue;
+                    Log.LogError(ex);
                 }
-
-                foreach (var table in handle.Result)
-                {
-                    if (table is AssetTable at)
-                    {
-                        foreach (var entry in at.Values)
-                        {
-                            var assetHandle = at.GetAssetAsync<UnityEngine.Object>(entry.Key);
-                            yield return assetHandle;
-
-                            if (assetHandle.Status != AsyncOperationStatus.Succeeded)
-                            {
-                                Log.LogWarning($"Failed to load asset for key '{entry.Key}' in table '{at.name}'");
-                                continue;
-                            }
-
-                            UnityEngine.Object asset = assetHandle.Result;
-                            if (asset == null) continue;
-
-                            Texture2D texture = null;
-                            if (asset is Texture2D tex) texture = LocalePatcherCore.GetReadableTexture(tex);
-                            else if (asset is Sprite sprite) texture = LocalePatcherCore.GetReadableSprite(sprite);
-                            else
-                            {
-                                Log.LogMessage($"Asset '{entry.Key}' is not a Texture2D or Sprite, skipping.");
-                                continue;
-                            }
-
-                            byte[] pngData = ImageConversion.EncodeToPNG(texture);
-
-                            string path = $"{dumpName}/{at.name}_{entry.Key}.png";
-                            File.WriteAllBytes(Path.Combine(patchesRoot, path), pngData);
-
-                            entries.Add([
-                                at.name,
-                                entry.Key,
-                                path,
-                                entry.KeyId.ToString(),
-                            ]);
-                        }
-                    }
-                }
-            }
-
-            UnityEngine.Object[] textAssets = Resources.LoadAll("/", typeof(TextAsset));
-            foreach (var asset in textAssets)
-            {
-                if (asset is not TextAsset textAsset)
-                    continue;
-
-                if (textAsset.name.EndsWith(".lang"))
-                {
-                    Log.LogMessage($"Dumping Event lines for: {textAsset.name}");
-
-                    try
-                    {
-                        LocalizeData localizeData = JsonUtility.FromJson<LocalizeData>((textAsset as TextAsset).text);
-
-                        foreach (var locale in localizeData.List)
-                        {
-                            for (var i = 0; i < locale.Lines.Length; i++)
-                            {
-                                entries.Add([
-                                    textAsset.name,
-                                    locale.Language + "/" + i,
-                                    locale.Lines[i],
-                                    localizeData.Keys[i] + "/" + locale.Language,
-                                ]);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.LogError(ex);
-                    }
-                }
-            }
-
-            entries.Sort((a, b) =>
-            {
-                int cmp = string.CompareOrdinal(a[0], b[0]);
-                if (cmp != 0) return cmp;
-                return string.CompareOrdinal(a[1], b[1]);
-            });
-
-            var dump = new StringBuilder();
-            dump.AppendLine(Csv.SerializeLine(["TableName", "Key", "Text", /* "KeyId" */]));
-            foreach (var row in entries)
-                dump.AppendLine(Csv.SerializeLine(row));
-
-            File.WriteAllText(Path.Combine(patchesRoot, $"{dumpName}.csv"), dump.ToString());
-
-            Log.LogMessage($"Dumped {entries.Count} entries to {dumpName}.csv");
-
-            Log.LogWarning($"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            Log.LogWarning($"!              YunyunLocalePatcher will not patch any locales!              !");
-            Log.LogWarning($"! Remove --localepatcher.dumpstrings from launch options to enable patching !");
-            Log.LogWarning($"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        }
-
-        private static Texture2D GetReadableTexture(Texture2D source)
-        {
-            RenderTexture previous = RenderTexture.active;
-            RenderTexture rt = null;
-
-            try
-            {
-                rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.Default, RenderTextureReadWrite.Linear);
-
-                Graphics.Blit(source, rt);
-                RenderTexture.active = rt;
-
-                Texture2D readable = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false);
-                readable.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-                readable.Apply();
-
-                return readable;
-            }
-            finally
-            {
-                RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(rt);
             }
         }
 
-        // From https://gamedev.stackexchange.com/a/214819
-        private static Texture2D GetReadableSprite(Sprite source)
+        entries.Sort((a, b) =>
         {
-            RenderTexture previous = RenderTexture.active;
-            RenderTexture rt = null;
-            GameObject spriteGO = null;
-            GameObject camGO = null;
+            int cmp = string.CompareOrdinal(a[0], b[0]);
+            if (cmp != 0) return cmp;
+            return string.CompareOrdinal(a[1], b[1]);
+        });
 
-            try
-            {
-                int width = (int)source.rect.width;
-                int height = (int)source.rect.height;
-                int renderLayer = 30; // Assuming layer 30 is unused, we use it to mask out our sprite
+        var dump = new StringBuilder();
+        dump.AppendLine(Csv.SerializeLine(["TableName", "Key", "Text", /* "KeyId" */]));
+        foreach (var row in entries)
+            dump.AppendLine(Csv.SerializeLine(row));
 
-                // Setup temporary GameObject with SpriteRenderer
-                spriteGO = new GameObject("TempSpriteRenderer");
-                var spriteRenderer = spriteGO.AddComponent<SpriteRenderer>();
-                spriteRenderer.sprite = source;
-                spriteGO.layer = renderLayer;
-                spriteGO.transform.position = Vector3.zero;
+        File.WriteAllText(Path.Combine(patchesRoot, $"{dumpName}.csv"), dump.ToString());
 
-                // Setup temporary camera - orthographic, so we can control size easily
-                camGO = new GameObject("TempCamera");
-                Camera cam = camGO.AddComponent<Camera>();
-                cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0, 0, 0, 0);
-                cam.orthographic = true;
-                cam.cullingMask = 1 << renderLayer;
-                cam.orthographicSize = height / source.pixelsPerUnit / 2f;
-                cam.transform.position = new Vector3(0, 0, -10);
-                cam.tag = "MainCamera";
+        Log.LogMessage($"Dumped {entries.Count} entries to {dumpName}.csv");
 
-                // Create RenderTexture and render
-                rt = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.Default, RenderTextureReadWrite.Linear);
-                rt.filterMode = FilterMode.Point;
-                cam.targetTexture = rt;
-                cam.Render();
+        Log.LogWarning($"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        Log.LogWarning($"!              YunyunLocalePatcher will not patch any locales!              !");
+        Log.LogWarning($"! Remove --localepatcher.dumpstrings from launch options to enable patching !");
+        Log.LogWarning($"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    }
 
-                RenderTexture.active = rt;
-                Texture2D readable = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false);
-                readable.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-                readable.Apply();
-                RenderTexture.active = previous;
+    private static Texture2D GetReadableTexture(Texture2D source)
+    {
+        RenderTexture previous = RenderTexture.active;
+        RenderTexture rt = null;
 
-                return readable;
-            }
-            finally
-            {
-                // Cleanup temporary objects
-                RenderTexture.active = previous;
-                RenderTexture.ReleaseTemporary(rt);
-                UnityEngine.Object.DestroyImmediate(spriteGO);
-                UnityEngine.Object.DestroyImmediate(camGO);
-            }
+        try
+        {
+            rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.Default, RenderTextureReadWrite.Linear);
+
+            Graphics.Blit(source, rt);
+            RenderTexture.active = rt;
+
+            Texture2D readable = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false);
+            readable.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+            readable.Apply();
+
+            return readable;
+        }
+        finally
+        {
+            RenderTexture.active = previous;
+            RenderTexture.ReleaseTemporary(rt);
+        }
+    }
+
+    // From https://gamedev.stackexchange.com/a/214819
+    private static Texture2D GetReadableSprite(Sprite source)
+    {
+        RenderTexture previous = RenderTexture.active;
+        RenderTexture rt = null;
+        GameObject spriteGO = null;
+        GameObject camGO = null;
+
+        try
+        {
+            int width = (int)source.rect.width;
+            int height = (int)source.rect.height;
+            int renderLayer = 30; // Assuming layer 30 is unused, we use it to mask out our sprite
+
+            // Setup temporary GameObject with SpriteRenderer
+            spriteGO = new GameObject("TempSpriteRenderer");
+            var spriteRenderer = spriteGO.AddComponent<SpriteRenderer>();
+            spriteRenderer.sprite = source;
+            spriteGO.layer = renderLayer;
+            spriteGO.transform.position = Vector3.zero;
+
+            // Setup temporary camera - orthographic, so we can control size easily
+            camGO = new GameObject("TempCamera");
+            Camera cam = camGO.AddComponent<Camera>();
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0, 0, 0, 0);
+            cam.orthographic = true;
+            cam.cullingMask = 1 << renderLayer;
+            cam.orthographicSize = height / source.pixelsPerUnit / 2f;
+            cam.transform.position = new Vector3(0, 0, -10);
+            cam.tag = "MainCamera";
+
+            // Create RenderTexture and render
+            rt = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.Default, RenderTextureReadWrite.Linear);
+            rt.filterMode = FilterMode.Point;
+            cam.targetTexture = rt;
+            cam.Render();
+
+            RenderTexture.active = rt;
+            Texture2D readable = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false);
+            readable.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+            readable.Apply();
+            RenderTexture.active = previous;
+
+            return readable;
+        }
+        finally
+        {
+            // Cleanup temporary objects
+            RenderTexture.active = previous;
+            RenderTexture.ReleaseTemporary(rt);
+            UnityEngine.Object.DestroyImmediate(spriteGO);
+            UnityEngine.Object.DestroyImmediate(camGO);
         }
     }
 }
