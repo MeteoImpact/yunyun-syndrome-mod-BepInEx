@@ -6,7 +6,7 @@
 
 This is a mod for [Yunyun Syndrome!? Rhythm Psychosis](https://store.steampowered.com/app/2914150/Yunyun_Syndrome_Rhythm_Psychosis/)
 from the [YYDS EN Fanslation Project](https://github.com/YYDS-EN-Fanslation). It loads and applies patches which can modify in-game text and images in order
-to tweak, change and fix the game's localization. The BepInEx port of the mod is maintained by MeteoImpact, whose most recent translation is currently included in the release.
+to tweak, change and fix the game's localization. The BepInEx port of the mod is currently maintained by MeteoImpact, whose most recent translation is included in the release.
 
 Looking for something else?
 - [Yunyun Denpa Syndrome Translation Mod (MelonLoader)](https://github.com/YYDS-EN-Fanslation/yunyun-syndrome-mod) - Original MelonLoader version of the mod
