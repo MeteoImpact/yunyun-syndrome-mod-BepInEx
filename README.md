@@ -17,9 +17,9 @@ Looking for something else?
 
 ## How to Install
 
-1. Download [BepInEx](https://github.com/MeteoImpact/yunyun-syndrome-mod-BepInEx/releases/tag/Release) and extract to your root Yunyun Denpa Syndrome folder (by default C:\Steam\steamapps\common\Yunyun_Syndrome).
+1. Download [BepInEx](https://github.com/BepInEx/BepInEx/releases/) and extract to your root Yunyun Denpa Syndrome folder (by default C:\Steam\steamapps\common\Yunyun_Syndrome).
 
-2. Download the mod archive from the [Releases page](https://github.com/MeteoImpact/yunyun-syndrome-mod-BepInEx/releases/) and extract to your root Yunyun Denpa Syndrome folder.
+2. Download the mod archive from the [Releases page](https://github.com/MeteoImpact/yunyun-syndrome-mod-BepInEx/releases/tag/Release) and extract to your root Yunyun Denpa Syndrome folder.
 
 3. **(optional)** Add/remove locale patches in `Yunyun_Syndrome\UserData\LocalePatches` directory. For example:
     - [Radish](https://github.com/Radish-sys)'s MTL: [JP -> EN](https://raw.githubusercontent.com/YYDS-EN-Fanslation/yunyun-syndrome-translation/refs/heads/master/YYDS%20EN%20Fanslation%20-%20MTL%20Patch.csv)
