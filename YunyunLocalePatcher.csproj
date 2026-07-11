@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -47,11 +47,17 @@
 		<Reference Include="UnityEngine">
 			<HintPath>$(GameLibs)\UnityEngine.dll</HintPath>
 		</Reference>
-		<Reference Include="MelonLoader">
-			<HintPath>$(MelonLibs)\MelonLoader.dll</HintPath>
+		<Reference Include="BepInEx">
+			<HintPath>$(BepInCore)\BepInEx.dll</HintPath>
+		</Reference>
+		<Reference Include="BepInEx.Harmony">
+			<HintPath>$(BepInCore)\BepInEx.Harmony.dll</HintPath>
+		</Reference>
+		<Reference Include="BepInEx.Preloader">
+			<HintPath>$(BepInCore)\BepInEx.Preloader.dll</HintPath>
 		</Reference>
 		<Reference Include="0Harmony">
-			<HintPath>$(MelonLibs)\0Harmony.dll</HintPath>
+			<HintPath>$(BepInCore)\0Harmony.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 	
